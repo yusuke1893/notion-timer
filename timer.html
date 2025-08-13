@@ -1,664 +1,788 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notion Timer Todo</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
-            background: #191919;
-            color: #e6e6e6;
-            padding: 0;
-            margin: 0;
-        }
-        
-        .container {
-            max-width: 100%;
-            background: #2f3437;
-            min-height: 100vh;
-        }
-        
-        .header {
-            background: #37352f;
-            padding: 16px 20px;
-            border-bottom: 1px solid #424242;
-        }
-        
-        .header-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            color: #e6e6e6;
-        }
-        
-        .sync-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            background: #3a3a3a;
-            border-radius: 6px;
-            font-size: 12px;
-            color: #9b9b9b;
-        }
-        
-        .sync-dot {
-            width: 8px;
-            height: 8px;
-            background: #10b981;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        
-        .task-container {
-            padding: 16px;
-        }
-        
-        .group {
-            margin-bottom: 20px;
-            background: #37352f;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
-        .group-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            cursor: pointer;
-            user-select: none;
-            transition: background 0.2s;
-        }
-        
-        .group-header:hover {
-            background: #3f3d37;
-        }
-        
-        .group-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .chevron {
-            width: 16px;
-            height: 16px;
-            transition: transform 0.2s;
-            color: #9b9b9b;
-        }
-        
-        .chevron.collapsed {
-            transform: rotate(-90deg);
-        }
-        
-        .group-name {
-            font-weight: 600;
-            color: #e6e6e6;
-        }
-        
-        .group-count {
-            color: #9b9b9b;
-            font-size: 14px;
-        }
-        
-        .group-progress {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .progress-text {
-            font-size: 13px;
-            color: #9b9b9b;
-            min-width: 35px;
-            text-align: right;
-        }
-        
-        .progress-bar {
-            width: 80px;
-            height: 4px;
-            background: #4a4a4a;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: #4a9eff;
-            transition: width 0.3s;
-        }
-        
-        .tasks {
-            padding: 0 16px 12px;
-        }
-        
-        .tasks.collapsed {
-            display: none;
-        }
-        
-        .task {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            background: #2f3437;
-            border-radius: 6px;
-            margin-bottom: 6px;
-            transition: background 0.2s;
-        }
-        
-        .task:hover {
-            background: #383838;
-        }
-        
-        .checkbox {
-            width: 18px;
-            height: 18px;
-            border: 2px solid #5a5a5a;
-            border-radius: 3px;
-            cursor: pointer;
-            position: relative;
-            flex-shrink: 0;
-        }
-        
-        .checkbox.checked {
-            background: #4a9eff;
-            border-color: #4a9eff;
-        }
-        
-        .checkbox.checked::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 5px;
-            width: 5px;
-            height: 8px;
-            border: solid white;
-            border-width: 0 2px 2px 0;
-            transform: rotate(45deg);
-        }
-        
-        /* タイマーボタン - 動画再生ボタンスタイル */
-        .timer-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: #4a4a4a;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            position: relative;
-            flex-shrink: 0;
-        }
-        
-        .timer-btn:hover:not(:disabled) {
-            background: #5a5a5a;
-            transform: scale(1.05);
-        }
-        
-        .timer-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-        
-        .timer-btn.running {
-            background: #eb4444;
-        }
-        
-        .timer-btn.running:hover {
-            background: #dc2626;
-        }
-        
-        /* 再生アイコン（三角形） */
-        .play-icon {
-            width: 0;
-            height: 0;
-            border-top: 5px solid transparent;
-            border-bottom: 5px solid transparent;
-            border-left: 8px solid #e6e6e6;
-            margin-left: 2px;
-        }
-        
-        .timer-btn.running .play-icon {
-            display: none;
-        }
-        
-        /* 一時停止アイコン（二本線） */
-        .pause-icon {
-            display: none;
-            gap: 2px;
-        }
-        
-        .timer-btn.running .pause-icon {
-            display: flex;
-        }
-        
-        .pause-bar {
-            width: 3px;
-            height: 10px;
-            background: #e6e6e6;
-            border-radius: 1px;
-        }
-        
-        .task-name {
-            flex: 1;
-            color: #e6e6e6;
-            font-size: 14px;
-        }
-        
-        .task.completed .task-name {
-            color: #7a7a7a;
-            text-decoration: line-through;
-        }
-        
-        .task-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .workload {
-            padding: 2px 8px;
-            background: #3a3a3a;
-            border-radius: 4px;
-            font-size: 12px;
-            color: #9b9b9b;
-        }
-        
-        .timer {
-            font-family: 'SF Mono', Monaco, monospace;
-            font-size: 13px;
-            color: #9b9b9b;
-            min-width: 65px;
-            text-align: right;
-        }
-        
-        .timer.active {
-            color: #eb4444;
-            font-weight: 500;
-        }
-        
-        .add-task {
-            margin: 16px;
-            padding: 12px;
-            background: #37352f;
-            border: 1px dashed #5a5a5a;
-            border-radius: 6px;
-            color: #9b9b9b;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 14px;
-        }
-        
-        .add-task:hover {
-            background: #3f3d37;
-            border-color: #7a7a7a;
-            color: #e6e6e6;
-        }
-        
-        /* フローティングタイマー */
-        .floating-timer {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #37352f;
-            border: 1px solid #4a4a4a;
-            padding: 12px 16px;
-            border-radius: 8px;
-            display: none;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-        
-        .floating-timer.active {
-            display: flex;
-        }
-        
-        .floating-task {
-            color: #e6e6e6;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        
-        .floating-time {
-            font-family: 'SF Mono', Monaco, monospace;
-            font-size: 16px;
-            color: #eb4444;
-            font-weight: 600;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Notion風ホームダッシュボード（長期計画ダッシュボード対応）</title>
+  <style>
+:root {
+  --bg: #f6f7f9;
+  --card: #fff;
+  --muted: #6b7280;
+  --text: #111827;
+  --line: #e5e7eb;
+  --primary: #111827;
+  --radius: 16px;
+  --accent: #2563eb;
+  --accent-2: #10b981;
+  --accent-3: #a855f7;
+  --accent-4: #f59e0b;
+  --accent-5: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans JP", sans-serif;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.btn.sm {
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.btn.danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fff5f5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .right, .sidebar {
+    order: 2;
+  }
+  .main {
+    order: 1;
+  }
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .03);
+}
+
+.card h3 {
+  margin: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.card-body {
+  padding: 14px 16px;
+}
+
+.sidebar .list {
+  color: var(--muted);
+  padding-left: 18px;
+  margin: 8px 0;
+}
+
+.img-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.shortcuts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .shortcuts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.shortcut {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.shortcut:hover {
+  background: #f3f4f6;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #d1d5db;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table th, .table td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+}
+
+.table thead th {
+  background: #f8fafc;
+  border-top: none;
+  font-weight: 600;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.status.done {
+  background: #f1f5f9;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.t-blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.t-green {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.t-purple {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.t-amber {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.t-rose {
+  background: #ffe4e6;
+  color: #9f1239;
+}
+
+.t-gray {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.filterbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.input {
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 10px;
+  min-width: 180px;
+}
+
+.progress-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.bar {
+  height: 10px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.logs {
+  color: var(--muted);
+  padding-left: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.log-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.delete-btn {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--accent-5);
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: 8px;
+  padding: 2px 8px;
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.timer .clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.iconbtn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  cursor: pointer;
+}
+
+/* Dashboard editable list */
+.dash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.dash-title {
+  font-weight: 600;
+}
+
+.dash-actions {
+  display: flex;
+  gap: 6px;
+}
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="header-content">
-                <div class="title">
-                    <span>📊</span>
-                    <span>Todo Timer</span>
-                </div>
-                <div class="sync-status">
-                    <div class="sync-dot"></div>
-                    <span>Notion同期中</span>
-                </div>
+  <div class="container">
+    <header class="header">
+      <div class="title">Notion 取材 vol.21 風：ホームダッシュボード</div>
+      <div class="controls">
+        <button class="btn">🔎 検索</button>
+        <button class="btn primary">＋ 新規ページ</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <aside class="sidebar">
+        <section class="card">
+          <h3>HOME</h3>
+          <div class="card-body">
+            <div style="font-weight:600;margin-bottom:6px">Quest</div>
+            <ul class="list">
+              <li>応用情報：午前対策 30 分/日</li>
+              <li>Fileforge：Phase 2 着手</li>
+              <li>AtCoder：C 問題移行</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:12px">
+          <h3>メモ</h3>
+          <div class="card-body" style="color:var(--muted)">雑メモ置き場。気づきを素早くメモ→後で整理。</div>
+        </section>
+
+        <section class="card img-card" style="margin-top:12px">
+          <div class="card-body">
+            <img alt="island" src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=1200&auto=format&fit=crop" />
+            <div style="color:var(--muted);margin-top:8px">休憩も大事。5 分だけ景色を見よう。</div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="main" style="display:flex;flex-direction:column;gap:12px">
+        <section class="card">
+          <h3>shortcut</h3>
+          <div class="card-body">
+            <div class="shortcuts">
+              <button class="shortcut"><span class="dot"></span>週間プラン</button>
+              <button class="shortcut"><span class="dot"></span>ToDo一覧</button>
+              <button class="shortcut"><span class="dot"></span>設定</button>
+              <button class="shortcut"><span class="dot"></span>HOME</button>
             </div>
-        </div>
-        
-        <div class="task-container">
-            <!-- 関東特別 -->
-            <div class="group">
-                <div class="group-header" onclick="toggleGroup(this)">
-                    <div class="group-info">
-                        <svg class="chevron" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M5.5 4.5L10.5 8L5.5 11.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
-                        </svg>
-                        <span class="group-name">関東特別</span>
-                        <span class="group-count">2</span>
-                    </div>
-                    <div class="group-progress">
-                        <span class="progress-text">0%</span>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="tasks">
-                    <div class="task">
-                        <div class="checkbox" onclick="toggleComplete(this)"></div>
-                        <button class="timer-btn" onclick="toggleTimer(this, '週次振り返り')">
-                            <div class="play-icon"></div>
-                            <div class="pause-icon">
-                                <div class="pause-bar"></div>
-                                <div class="pause-bar"></div>
-                            </div>
-                        </button>
-                        <span class="task-name">週次振り返り</span>
-                        <div class="task-info">
-                            <span class="workload">17</span>
-                            <span class="timer">00:00:00</span>
-                        </div>
-                    </div>
-                    <div class="task">
-                        <div class="checkbox" onclick="toggleComplete(this)"></div>
-                        <button class="timer-btn" onclick="toggleTimer(this, 'タスク')">
-                            <div class="play-icon"></div>
-                            <div class="pause-icon">
-                                <div class="pause-bar"></div>
-                                <div class="pause-bar"></div>
-                            </div>
-                        </button>
-                        <span class="task-name">タスク</span>
-                        <div class="task-info">
-                            <span class="workload">17</span>
-                            <span class="timer">00:00:00</span>
-                        </div>
-                    </div>
-                </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>schedule &amp; todo</h3>
+          <div class="card-body">
+            <div class="filterbar" style="margin-bottom:10px">
+              <button id="toggleUndone" class="btn">未完了のみ: OFF</button>
             </div>
-            
-            <!-- 作業1 -->
-            <div class="group">
-                <div class="group-header" onclick="toggleGroup(this)">
-                    <div class="group-info">
-                        <svg class="chevron" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M5.5 4.5L10.5 8L5.5 11.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
-                        </svg>
-                        <span class="group-name">作業1</span>
-                        <span class="group-count">2</span>
-                    </div>
-                    <div class="group-progress">
-                        <span class="progress-text">57%</span>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 57%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="tasks">
-                    <div class="task completed">
-                        <div class="checkbox checked" onclick="toggleComplete(this)"></div>
-                        <button class="timer-btn" disabled>
-                            <div class="play-icon"></div>
-                            <div class="pause-icon">
-                                <div class="pause-bar"></div>
-                                <div class="pause-bar"></div>
-                            </div>
-                        </button>
-                        <span class="task-name">タスク</span>
-                        <div class="task-info">
-                            <span class="workload">17</span>
-                            <span class="timer">00:17:00</span>
-                        </div>
-                    </div>
-                    <div class="task completed">
-                        <div class="checkbox checked" onclick="toggleComplete(this)"></div>
-                        <button class="timer-btn" disabled>
-                            <div class="play-icon"></div>
-                            <div class="pause-icon">
-                                <div class="pause-bar"></div>
-                                <div class="pause-bar"></div>
-                            </div>
-                        </button>
-                        <span class="task-name">タスク</span>
-                        <div class="task-info">
-                            <span class="workload">48</span>
-                            <span class="timer">00:48:00</span>
-                        </div>
-                    </div>
-                </div>
+            <div class="filterbar" style="margin-bottom:12px">
+              <input id="newTitle" class="input" placeholder="新規タイトル" />
+              <select id="newDashTag" class="input"></select>
+              <label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="newDone"/> 完了</label>
+              <button id="addSchedule" class="btn">追加</button>
             </div>
-            
-            <!-- 作業2 -->
-            <div class="group">
-                <div class="group-header" onclick="toggleGroup(this)">
-                    <div class="group-info">
-                        <svg class="chevron" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M5.5 4.5L10.5 8L5.5 11.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
-                        </svg>
-                        <span class="group-name">作業2</span>
-                        <span class="group-count">1</span>
-                    </div>
-                    <div class="group-progress">
-                        <span class="progress-text">80%</span>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 80%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="tasks">
-                    <div class="task completed">
-                        <div class="checkbox checked" onclick="toggleComplete(this)"></div>
-                        <button class="timer-btn" disabled>
-                            <div class="play-icon"></div>
-                            <div class="pause-icon">
-                                <div class="pause-bar"></div>
-                                <div class="pause-bar"></div>
-                            </div>
-                        </button>
-                        <span class="task-name">タスク</span>
-                        <div class="task-info">
-                            <span class="workload">85</span>
-                            <span class="timer">01:20:00</span>
-                        </div>
-                    </div>
-                </div>
+            <div class="table-wrap" style="overflow:hidden;border:1px solid var(--line);border-radius:12px">
+              <table class="table" id="scheduleTable">
+                <thead>
+                  <tr>
+                    <th>タイトル</th>
+                    <th style="width:240px">タグ</th>
+                    <th style="width:110px">状態</th>
+                    <th style="width:140px">操作</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
             </div>
-            
-            <!-- 作業3 -->
-            <div class="group">
-                <div class="group-header" onclick="toggleGroup(this)">
-                    <div class="group-info">
-                        <svg class="chevron" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M5.5 4.5L10.5 8L5.5 11.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
-                        </svg>
-                        <span class="group-name">作業3</span>
-                        <span class="group-count">1</span>
-                    </div>
-                    <div class="group-progress">
-                        <span class="progress-text">0%</span>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="tasks">
-                    <div class="task">
-                        <div class="checkbox" onclick="toggleComplete(this)"></div>
-                        <button class="timer-btn" onclick="toggleTimer(this, 'ToDo')">
-                            <div class="play-icon"></div>
-                            <div class="pause-icon">
-                                <div class="pause-bar"></div>
-                                <div class="pause-bar"></div>
-                            </div>
-                        </button>
-                        <span class="task-name">ToDo</span>
-                        <div class="task-info">
-                            <span class="workload">0</span>
-                            <span class="timer">00:00:00</span>
-                        </div>
-                    </div>
-                </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>ダッシュボード（長期計画）</h3>
+          <div class="card-body">
+            <div class="filterbar" style="margin-bottom:12px">
+              <input id="dashNewTitle" class="input" placeholder="新規タイトル（長期計画）" />
+              <button id="dashAdd" class="btn">追加</button>
             </div>
-        </div>
-        
-        <div class="add-task" onclick="addTask()">
-            + 新規タスク追加
-        </div>
+            <ul id="dashList" class="dash-list"></ul>
+          </div>
+        </section>
+      </main>
+
+      <aside class="right" style="display:flex;flex-direction:column;gap:12px">
+        <section class="card">
+          <h3>Daily log</h3>
+          <div class="card-body">
+            <div class="log-add" style="margin-bottom:10px;display:flex;gap:8px">
+              <input id="logInput" class="input" placeholder="今日のメモを追加" />
+              <button class="btn" id="addLog">追加</button>
+            </div>
+            <ul class="logs" id="logs"></ul>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>ポモドーロ</h3>
+          <div class="card-body">
+            <div class="timer">
+              <div class="clock" id="clock">25:00</div>
+              <div style="display:flex;gap:8px">
+                <button class="iconbtn" id="playPause">▶</button>
+                <button class="iconbtn" id="reset">⟲</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </aside>
     </div>
-    
-    <!-- フローティングタイマー -->
-    <div class="floating-timer" id="floatingTimer">
-        <span class="floating-task" id="activeTask">-</span>
-        <span class="floating-time" id="activeTime">00:00:00</span>
-    </div>
-    
-    <script>
-        let activeTimer = null;
-        let timerInterval = null;
-        let seconds = 0;
-        
-        function toggleGroup(header) {
-            const chevron = header.querySelector('.chevron');
-            const tasks = header.nextElementSibling;
-            
-            chevron.classList.toggle('collapsed');
-            tasks.classList.toggle('collapsed');
+  </div>
+
+  <script>
+    // ======= データ =======
+    const TAG_META = {
+      study: { label: '学習', cls: 't-blue' },
+      work: { label: 'アルバイト', cls: 't-amber' },
+      notion: { label: 'Notion', cls: 't-green' },
+      plan: { label: '計画', cls: 't-purple' },
+      review: { label: '復習', cls: 't-rose' }
+    };
+
+    // スケジュール（dashTag をメインタグとして扱う）
+    let SCHEDULE = [
+      { title: '朝ルーティン', dashTag: '#計画', done: true },
+      { title: '英語リーディング', dashTag: '英語', done: true },
+      { title: 'AtCoder演習', dashTag: 'AtCoder', done: false },
+      { title: 'Fileforge 実装', dashTag: '開発', done: false },
+      { title: '応用情報 過去問', dashTag: '学習', done: false },
+      { title: 'レビュー/振り返り', dashTag: '#計画', done: false }
+    ];
+
+    // ダッシュボード（長期計画）
+    let DASHBOARD = ['#計画', '英語', 'AtCoder', '開発', '学習'];
+
+    // ======= schedule & todo =======
+    const tbody = document.querySelector('#scheduleTable tbody');
+    const toggleUndone = document.getElementById('toggleUndone');
+    const addScheduleBtn = document.getElementById('addSchedule');
+    const newTitle = document.getElementById('newTitle');
+    const newDashTag = document.getElementById('newDashTag');
+    const newDone = document.getElementById('newDone');
+
+    let onlyUndone = false;
+
+    function buildDashOptions(selectEl, current) {
+      selectEl.innerHTML = '';
+      DASHBOARD.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        if (name === current) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+    }
+
+    function renderTable() {
+      const rows = SCHEDULE
+        .map((s, idx) => ({ s, idx }))
+        .filter(({ s }) => (!onlyUndone || !s.done));
+
+      tbody.innerHTML = rows.map(({ s, idx }) => `
+        <tr>
+          <td>${s.title}</td>
+          <td>
+            <select class="input" data-action="tagselect" data-index="${idx}"></select>
+          </td>
+          <td>
+            <span class="status ${s.done ? 'done' : ''}" data-action="toggle" data-index="${idx}" role="button" aria-label="状態を切り替え">${s.done ? '完了' : '進行中'}</span>
+          </td>
+          <td>
+            <button class="btn sm" data-action="rename" data-index="${idx}">名前変更</button>
+            <button class="btn sm danger" data-action="delete" data-index="${idx}">削除</button>
+          </td>
+        </tr>
+      `).join('');
+
+      // 各行のセレクトを構築
+      tbody.querySelectorAll('select[data-action="tagselect"]').forEach(sel => {
+        const i = Number(sel.dataset.index);
+        buildDashOptions(sel, SCHEDULE[i].dashTag);
+      });
+
+      // ダッシュボード側の%を再計算
+      renderDashboard();
+    }
+
+    // テーブル内の操作
+    tbody.addEventListener('change', (e) => {
+      const sel = e.target.closest('select[data-action="tagselect"]');
+      if (sel) {
+        const i = Number(sel.dataset.index);
+        SCHEDULE[i].dashTag = sel.value;
+        renderDashboard();
+        return;
+      }
+    });
+
+    tbody.addEventListener('click', (e) => {
+      const del = e.target.closest('[data-action="delete"]');
+      const tog = e.target.closest('[data-action="toggle"]');
+      const ren = e.target.closest('[data-action="rename"]');
+      if (del) {
+        const i = Number(del.dataset.index);
+        SCHEDULE.splice(i, 1);
+        renderTable();
+        return;
+      }
+      if (tog) {
+        const i = Number(tog.dataset.index);
+        SCHEDULE[i].done = !SCHEDULE[i].done;
+        renderTable();
+        return;
+      }
+      if (ren) {
+        const i = Number(ren.dataset.index);
+        const t = prompt('新しいタイトル名を入力', SCHEDULE[i].title);
+        if (t && t.trim()) {
+          SCHEDULE[i].title = t.trim();
+          renderTable();
         }
-        
-        function toggleComplete(checkbox) {
-            const task = checkbox.parentElement;
-            const timerBtn = task.querySelector('.timer-btn');
-            
-            checkbox.classList.toggle('checked');
-            task.classList.toggle('completed');
-            
-            if (checkbox.classList.contains('checked')) {
-                timerBtn.disabled = true;
-                if (timerBtn.classList.contains('running')) {
-                    toggleTimer(timerBtn, '');
-                }
-            } else {
-                timerBtn.disabled = false;
-            }
-            
-            updateGroupProgress(task.closest('.group'));
+      }
+    });
+
+    toggleUndone.addEventListener('click', () => {
+      onlyUndone = !onlyUndone;
+      toggleUndone.textContent = `未完了のみ: ${onlyUndone ? 'ON' : 'OFF'}`;
+      renderTable();
+    });
+
+    // 追加フォーム
+    function renderDashSelectForNew() {
+      buildDashOptions(newDashTag, '#計画');
+    }
+
+    addScheduleBtn.addEventListener('click', () => {
+      const title = (newTitle.value || '').trim();
+      const tag = newDashTag.value || '#計画';
+      const done = newDone.checked;
+      if (!title) return;
+      SCHEDULE.unshift({ title, dashTag: tag, done });
+      newTitle.value = '';
+      newDone.checked = false;
+      renderTable();
+    });
+
+    // ======= ダッシュボード =======
+    const dashList = document.getElementById('dashList');
+    const dashNewTitle = document.getElementById('dashNewTitle');
+    const dashAdd = document.getElementById('dashAdd');
+
+    function calcProgress(name) {
+      const tasks = SCHEDULE.filter(s => s.dashTag === name);
+      const total = tasks.length;
+      const done = tasks.filter(s => s.done).length;
+      return total === 0 ? 0 : Math.round(done * 100 / total);
+    }
+
+    function renderDashboard() {
+      dashList.innerHTML = DASHBOARD.map((name, idx) => {
+        const p = calcProgress(name);
+        return `
+          <li class="dash-item">
+            <div class="dash-title">${name}</div>
+            <div style="font-size:12px;color:var(--muted)">${p}%</div>
+            <div class="bar" style="grid-column:auto / span 1; width:100%"><span style="width:${p}%"></span></div>
+            <div class="dash-actions">
+              <button class="btn sm" data-dash-action="rename" data-index="${idx}">名前変更</button>
+              ${name === '#計画' ? '' : `<button class="btn sm danger" data-dash-action="delete" data-index="${idx}">削除</button>`}
+            </div>
+          </li>
+        `;
+      }).join('');
+
+      // 新規追加用セレクト再構築 & テーブルのセレクト再構築
+      renderDashSelectForNew();
+      tbody.querySelectorAll('select[data-action="tagselect"]').forEach(sel => {
+        const i = Number(sel.dataset.index);
+        const cur = sel.value;
+        buildDashOptions(sel, cur);
+      });
+    }
+
+    dashList.addEventListener('click', (e) => {
+      const del = e.target.closest('[data-dash-action="delete"]');
+      const ren = e.target.closest('[data-dash-action="rename"]');
+      if (del) {
+        const i = Number(del.dataset.index);
+        const name = DASHBOARD[i];
+        if (!confirm(`「${name}」を削除しますか？\nこのタグのタスクは #計画 に移動します。`)) return;
+        // タスクの再割当
+        SCHEDULE.forEach(t => { if (t.dashTag === name) t.dashTag = '#計画'; });
+        DASHBOARD.splice(i, 1);
+        renderTable();
+        return;
+      }
+      if (ren) {
+        const i = Number(ren.dataset.index);
+        const name = DASHBOARD[i];
+        const nn = prompt('新しいダッシュボード名を入力', name);
+        if (nn && nn.trim()) {
+          const newName = nn.trim();
+          if (DASHBOARD.includes(newName)) {
+            alert('同名のダッシュボードが既に存在します。');
+            return;
+          }
+          // タスク側のタグを更新
+          SCHEDULE.forEach(t => { if (t.dashTag === name) t.dashTag = newName; });
+          DASHBOARD[i] = newName;
+          renderTable();
         }
-        
-        function toggleTimer(btn, taskName) {
-            // 既存のタイマーを停止
-            if (activeTimer && activeTimer !== btn) {
-                activeTimer.classList.remove('running');
-                activeTimer.parentElement.querySelector('.timer').classList.remove('active');
-            }
-            
-            if (btn.classList.contains('running')) {
-                // タイマー停止
-                btn.classList.remove('running');
-                btn.parentElement.querySelector('.timer').classList.remove('active');
-                clearInterval(timerInterval);
-                activeTimer = null;
-                document.getElementById('floatingTimer').classList.remove('active');
-                
-                // 時間を保存（実際のアプリではAPIに送信）
-                saveTimeToNotion(taskName, seconds);
-            } else {
-                // タイマー開始
-                btn.classList.add('running');
-                btn.parentElement.querySelector('.timer').classList.add('active');
-                activeTimer = btn;
-                seconds = 0;
-                
-                // フローティングタイマー表示
-                document.getElementById('floatingTimer').classList.add('active');
-                document.getElementById('activeTask').textContent = taskName;
-                
-                timerInterval = setInterval(() => {
-                    seconds++;
-                    const timeStr = formatTime(seconds);
-                    btn.parentElement.querySelector('.timer').textContent = timeStr;
-                    document.getElementById('activeTime').textContent = timeStr;
-                }, 1000);
-            }
-        }
-        
-        function formatTime(sec) {
-            const h = Math.floor(sec / 3600);
-            const m = Math.floor((sec % 3600) / 60);
-            const s = sec % 60;
-            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-        }
-        
-        function updateGroupProgress(group) {
-            const checkboxes = group.querySelectorAll('.checkbox');
-            const checked = group.querySelectorAll('.checkbox.checked');
-            const percentage = Math.round((checked.length / checkboxes.length) * 100);
-            
-            const progressText = group.querySelector('.progress-text');
-            const progressFill = group.querySelector('.progress-fill');
-            
-            progressText.textContent = percentage + '%';
-            progressFill.style.width = percentage + '%';
-        }
-        
-        function addTask() {
-            // 実際のアプリではモーダルを表示してNotionに追加
-            console.log('新規タスク追加（Notion APIと連携）');
-        }
-        
-        function saveTimeToNotion(taskName, time) {
-            // 実際のアプリではNotion APIを使用して保存
-            console.log(`タスク「${taskName}」の時間を保存: ${formatTime(time)}`);
-        }
-        
-        // 初期表示で全グループを展開
-        document.querySelectorAll('.chevron').forEach(chevron => {
-            chevron.classList.remove('collapsed');
-        });
-    </script>
+      }
+    });
+
+    dashAdd.addEventListener('click', () => {
+      const title = (dashNewTitle.value || '').trim();
+      if (!title) return;
+      if (DASHBOARD.includes(title)) {
+        alert('同名のダッシュボードが既に存在します。');
+        return;
+      }
+      DASHBOARD.push(title);
+      dashNewTitle.value = '';
+      renderDashboard();
+    });
+
+    // ======= Daily log =======
+    const logsEl = document.getElementById('logs');
+    const addLogBtn = document.getElementById('addLog');
+    const logInput = document.getElementById('logInput');
+
+    let logs = [
+      '朝のタスクを完了。集中度は高め。',
+      'AtCoder C 問題で詰まる→復習タスク追加。'
+    ];
+
+    function renderLogs() {
+      logsEl.innerHTML = logs.map((l, idx) => `
+        <li class="log-item">
+          <span>• ${l}</span>
+          <button class="delete-btn" data-index="${idx}">削除</button>
+        </li>
+      `).join('');
+    }
+
+    logsEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.delete-btn');
+      if (!btn) return;
+      const i = Number(btn.dataset.index);
+      logs.splice(i, 1);
+      renderLogs();
+    });
+
+    addLogBtn.addEventListener('click', () => {
+      const v = (logInput.value || '').trim();
+      if (!v) return;
+      logs.unshift(v);
+      logInput.value = '';
+      renderLogs();
+    });
+
+    // ======= Pomodoro Timer =======
+    const clock = document.getElementById('clock');
+    const playPause = document.getElementById('playPause');
+    const reset = document.getElementById('reset');
+
+    let running = false;
+    let sec = 25 * 60;
+    let id = null;
+
+    function fmt(n) {
+      return String(n).padStart(2, '0');
+    }
+
+    function tick() {
+      if (sec > 0) {
+        sec--;
+        updateClock();
+      } else {
+        stop();
+        alert('おつかれさま！');
+      }
+    }
+
+    function updateClock() {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      clock.textContent = `${fmt(m)}:${fmt(s)}`;
+    }
+
+    function start() {
+      if (id) return;
+      running = true;
+      playPause.textContent = '⏸';
+      id = setInterval(tick, 1000);
+    }
+
+    function stop() {
+      running = false;
+      playPause.textContent = '▶';
+      clearInterval(id);
+      id = null;
+    }
+
+    playPause.addEventListener('click', () => {
+      running ? stop() : start();
+    });
+
+    reset.addEventListener('click', () => {
+      stop();
+      sec = 25 * 60;
+      updateClock();
+    });
+
+    // 初期レンダリング
+    renderDashSelectForNew();
+    renderTable();
+    renderLogs();
+    updateClock();
+  </script>
 </body>
 </html>
